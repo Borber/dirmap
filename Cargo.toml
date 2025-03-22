@@ -1,0 +1,25 @@
+[package]
+name = "dirmap"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "dirmap"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+rayon = "1.10"
+walkdir = "2.5"
+path-slash = "0.2"
+bincode = "2"
+zstd = "0.13"
+parking_lot = "0.12"
+
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
