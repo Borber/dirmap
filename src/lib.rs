@@ -46,7 +46,7 @@ impl File {
         let name = entry.file_name().to_string_lossy().into_owned();
         let metadata = entry
             .metadata()
-            .with_context(|| format!("无法获取元数据: {}", name))?;
+            .with_context(|| format!("无法获取元数据: {name}"))?;
 
         Ok(File {
             typ: Self::recognize_file_type(entry.path()),
@@ -71,7 +71,13 @@ impl File {
 }
 
 pub fn map(start_path: &str) -> Result<Vec<u8>> {
-    let tree = build_tree(start_path)?;
+    let mut tree = build_tree(start_path)?;
+    let sizes = calc_size(&tree, start_path)?;
+    for (path, size) in sizes {
+        tree.get_mut(&path)
+            .ok_or_else(|| anyhow!("目录不存在: {}", path))?
+            .size = size;
+    }
     let encoded = bincode::encode_to_vec(&tree, config::standard())?;
     Ok(zstd::encode_all(&encoded[..], 3)?)
 }
@@ -123,21 +129,21 @@ fn build_tree(start_path: &str) -> Result<HashMap<String, Dir>> {
                     }
                 }
             }
-        } else if entry.file_type().is_dir() {
-            if let Some(parent) = path.parent() {
-                if parent.as_os_str().is_empty() {
-                    return;
-                }
+        } else if entry.file_type().is_dir()
+            && let Some(parent) = path.parent()
+        {
+            if parent.as_os_str().is_empty() {
+                return;
+            }
 
-                let parent_path = parent.to_slash_lossy().into_owned();
-                let dir_path = path.to_slash_lossy().into_owned();
+            let parent_path = parent.to_slash_lossy().into_owned();
+            let dir_path = path.to_slash_lossy().into_owned();
 
-                let mut dirs_lock = dirs.lock();
-                if let Some(parent_dir) = dirs_lock.get_mut(&parent_path) {
-                    parent_dir.add_child(dir_path);
-                } else {
-                    *error.lock() = Some(anyhow!("父目录不存在: {}", parent_path));
-                }
+            let mut dirs_lock = dirs.lock();
+            if let Some(parent_dir) = dirs_lock.get_mut(&parent_path) {
+                parent_dir.add_child(dir_path);
+            } else {
+                *error.lock() = Some(anyhow!("父目录不存在: {}", parent_path));
             }
         }
     });
@@ -149,7 +155,9 @@ fn build_tree(start_path: &str) -> Result<HashMap<String, Dir>> {
     Ok(dirs.into_inner())
 }
 
-pub fn calc_size(dirs: &HashMap<String, Dir>, start_path: &str) -> Result<u64> {
+pub fn calc_size(dirs: &HashMap<String, Dir>, start_path: &str) -> Result<HashMap<String, u64>> {
+    let mut sizes = HashMap::new();
+
     // 使用枚举表示栈中的操作类型
     enum StackItem<'a> {
         Process(&'a str),   // 处理目录
@@ -158,19 +166,12 @@ pub fn calc_size(dirs: &HashMap<String, Dir>, start_path: &str) -> Result<u64> {
 
     let mut stack = vec![StackItem::Process(start_path)];
 
-    let mut total = 0u64;
-
     while let Some(item) = stack.pop() {
         match item {
             StackItem::Process(path) => {
                 let dir = dirs
                     .get(path)
                     .ok_or_else(|| anyhow!("目录不存在: {}", path))?;
-
-                // 如果是叶子节点（没有子目录），直接跳过
-                if dir.children.is_empty() {
-                    continue;
-                }
 
                 // 先推入计算操作，确保在处理完所有子目录后计算当前目录的大小
                 stack.push(StackItem::Calculate(path));
@@ -185,15 +186,20 @@ pub fn calc_size(dirs: &HashMap<String, Dir>, start_path: &str) -> Result<u64> {
                     .get(path)
                     .ok_or_else(|| anyhow!("目录不存在: {}", path))?;
 
+                let mut size = dir.size;
+
                 for child in &dir.children {
-                    let child_dir = dirs.get(child).unwrap();
-                    total += child_dir.size;
+                    size += sizes
+                        .get(child)
+                        .ok_or_else(|| anyhow!("目录不存在: {}", path))?;
                 }
+
+                sizes.insert(path.to_string(), size);
             }
         }
     }
 
-    Ok(total)
+    Ok(sizes)
 }
 
 #[cfg(test)]
@@ -210,7 +216,6 @@ mod tests {
     fn test_unmap() {
         let data = std::fs::read("map").expect("读取文件失败");
         let dirs = unmap(&data).expect("解映射失败");
-        let size = calc_size(&dirs, ".").expect("计算大小失败");
-        println!("{:?}, . : {}", dirs, size);
+        println!("{dirs:?}");
     }
 }
