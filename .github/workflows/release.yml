@@ -35,9 +35,16 @@ jobs:
 
       # 准备部署工件
       - name: Prepare Artifact
+        if: ${{ matrix.platform == 'ubuntu-22.04'}}
         run: |
           mkdir -p deploy
           cp target/release/dirmap deploy/dirmap-${{ matrix.target }}
+
+      - name: Prepare Artifact
+        if: ${{ matrix.platform == 'windows-2025'}}
+        run: |
+          mkdir -p deploy
+          cp target/release/dirmap.exe deploy/dirmap-${{ matrix.target }}.exe
 
       # 上传编译产物
       - name: Upload Artifact
