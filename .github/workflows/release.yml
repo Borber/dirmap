@@ -37,7 +37,7 @@ jobs:
       - name: Prepare Artifact
         run: |
           mkdir -p deploy
-          cp target/${{ matrix.target }}/release/dirmap deploy/dirmap-${{ matrix.target }}
+          cp target/release/dirmap deploy/dirmap-${{ matrix.target }}
 
       # 上传编译产物
       - name: Upload Artifact
