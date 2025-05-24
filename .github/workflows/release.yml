@@ -22,10 +22,10 @@ jobs:
 
       # 安装 Rust
       - name: install Rust
-        if: matrix.target == 'aarch64-unknown-linux-musl'
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@stable
         id: rust_toolchain
         with:
+          toolchain: nightly
           target: ${{ matrix.target }}
 
       # 编译项目
