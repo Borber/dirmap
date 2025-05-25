@@ -91,6 +91,7 @@ dependencies = [
  "parking_lot",
  "path-slash",
  "rayon",
+ "serde",
  "walkdir",
  "zstd",
 ]

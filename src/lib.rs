@@ -5,16 +5,17 @@ use bincode::{Decode, Encode, config};
 use parking_lot::Mutex;
 use path_slash::PathExt;
 use rayon::prelude::*;
+use serde::{Deserialize, Serialize};
 use walkdir::{DirEntry, WalkDir};
 
-#[derive(Debug, Clone, Decode, Encode, Default)]
+#[derive(Debug, Clone, Decode, Encode, Default, Serialize, Deserialize)]
 pub struct Dir {
     size: u64,
     file: Vec<File>,
     children: Vec<String>,
 }
 
-#[derive(Debug, Clone, Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode, Serialize, Deserialize)]
 pub struct File {
     typ: u8,
     name: String,

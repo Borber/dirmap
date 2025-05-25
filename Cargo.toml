@@ -11,6 +11,7 @@ path-slash = "0.2"
 bincode = "2"
 zstd = "0.13"
 parking_lot = "0.12"
+serde = { version = "1", features = ["derive"] }
 
 
 [profile.release]
