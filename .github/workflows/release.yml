@@ -51,4 +51,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dirmap-${{ matrix.target }}
-          path: deploy/dirmap-${{ matrix.target }}
+          path: deploy
