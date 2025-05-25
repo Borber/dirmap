@@ -7,14 +7,14 @@ use path_slash::PathExt;
 use rayon::prelude::*;
 use walkdir::{DirEntry, WalkDir};
 
-#[derive(Debug, Decode, Encode, Default)]
+#[derive(Debug, Clone, Decode, Encode, Default)]
 pub struct Dir {
     size: u64,
     file: Vec<File>,
     children: Vec<String>,
 }
 
-#[derive(Debug, Encode, Decode)]
+#[derive(Debug, Clone, Encode, Decode)]
 pub struct File {
     typ: u8,
     name: String,
